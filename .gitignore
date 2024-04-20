@@ -1,0 +1,11 @@
+# Ignorar archivos .cbp, .depend y .layout
+*.cbp
+*.depend
+*.layout
+*.txt
+*.bmp
+*.pdf
+
+# Ignorar carpetas /bin y /obj
+/bin/
+/obj/
