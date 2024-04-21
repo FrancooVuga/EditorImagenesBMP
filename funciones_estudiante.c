@@ -259,27 +259,15 @@ int aumentarContraste(const char* nombreArchivo)
 
     int i;
     unsigned char byte; // unsigned byte = 1 byte -> 0-255
-    unsigned char nuevoByte;
+    int nuevoByte;
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < tamImagen; i++)
     {
         fread(&byte, 1,1, pfOrigen);
-        nuevoByte = byte;
-        nuevoByte = 1.25 * (nuevoByte - 128) + 128;
-        fwrite(&nuevoByte, 1,1, pfNuevo);
-        //byte = byte > 255 ? 255 : byte < 0 ? 0 : byte;
-
-
-//        if(nuevoByte > 255)
-//        {
-//            nuevoByte = 255;
-//        }
-//        if(nuevoByte < 0)
-//        {
-//            nuevoByte = 0;
-//        }
-        //fwrite(&nuevoByte, 1,1, pfNuevo);
+        nuevoByte = 1.50 * (byte - 128) + 128;
+        byte = nuevoByte > 255 ? 255 : nuevoByte < 0 ? 0 : nuevoByte;
+        fwrite(&byte, 1,1, pfNuevo);
     }
 
     printf("Se invoco la funcion 'aumentarContraste'.\n");
@@ -291,13 +279,125 @@ int aumentarContraste(const char* nombreArchivo)
 
 int reducirContraste(const char* nombreArchivo)
 {
+    FILE* pfOrigen = fopen(nombreArchivo, "rb");
+    FILE* pfNuevo = fopen("estudiante_reducir_contraste.bmp", "wb");
+
+    if( !pfOrigen || !pfNuevo)
+    {
+        fclose(pfOrigen);
+        fclose(pfNuevo);
+        return NO_SE_PUEDE_CREAR_ARCHIVO;
+    }
+
+// Leo el tamaño del encabezadoBMP:
+    char tamEncabezado;
+    fseek(pfOrigen, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOrigen);
+
+// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
+    char encabezadoBMP[tamEncabezado];
+    fseek(pfOrigen, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+
+// Guardo los datos en la estructura 'infoEncabezado':
+    t_metadata infoEncabezado;
+
+    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
+    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
+    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
+    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
+    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
+    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
+// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
+    unsigned int tamImagen;
+    memcpy(&tamImagen, &encabezadoBMP[34], 4);
+
+    int i;
+    unsigned char byte; // unsigned byte = 1 byte -> 0-255
+    int nuevoByte;
+    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
+    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < tamImagen; i++)
+    {
+        fread(&byte, 1,1, pfOrigen);
+        nuevoByte = 0.50 * (byte - 128) + 128;
+        byte = nuevoByte > 255 ? 255 : nuevoByte < 0 ? 0 : nuevoByte;
+        fwrite(&byte, 1,1, pfNuevo);
+    }
+
     printf("Se invoco la funcion 'reducirContraste'.\n");
+
+    fclose(pfOrigen);
+    fclose(pfNuevo);
     return TODO_OK;
 }
 
 int tonalidadAzul(const char* nombreArchivo)
 {
+    FILE* pfOrigen = fopen(nombreArchivo, "rb");
+    FILE* pfNuevo = fopen("estudiante_tonalidad_azul.bmp", "wb");
+
+    if( !pfOrigen || !pfNuevo)
+    {
+        fclose(pfOrigen);
+        fclose(pfNuevo);
+        return NO_SE_PUEDE_CREAR_ARCHIVO;
+    }
+
+// Leo el tamaño del encabezadoBMP:
+    char tamEncabezado;
+    fseek(pfOrigen, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOrigen);
+
+// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
+    char encabezadoBMP[tamEncabezado];
+    fseek(pfOrigen, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+
+// Guardo los datos en la estructura 'infoEncabezado':
+    t_metadata infoEncabezado;
+
+    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
+    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
+    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
+    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
+    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
+    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
+// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
+    unsigned int tamImagen;
+    memcpy(&tamImagen, &encabezadoBMP[34], 4);
+
+    int i;
+    float promedio;
+    int nuevoAzul;
+    unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
+    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
+    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < tamImagen; i+=3)
+    {
+        fread(pixel, 3,1, pfOrigen);
+        nuevoAzul = 255/2;
+        if(nuevoAzul > 255)
+        {
+            pixel[0] = 255;
+        }
+        else
+        {
+            pixel[0] = nuevoAzul;
+        }
+        pixel[0] = nuevoAzul;
+        pixel[1] *= 0.99;
+        pixel[2] *= 0.99;
+        fwrite(pixel, 3,1, pfNuevo);
+    }
+
     printf("Se invoco la funcion 'tonalidadAzul'.\n");
+
+    fclose(pfOrigen);
+    fclose(pfNuevo);
+
     return TODO_OK;
 }
 
