@@ -31,9 +31,6 @@ int rotarDerecha(const char* nombreArchivo);
 int rotarIzquierda(const char* nombreArchivo);
 int comodin(const char* nombreArchivo); // REEMPLAZAR
 
-int imprimirBinarioHexa(const char* nombreArchivo);
-int compararArchivosBinarios(const char* archivo1, const char* archivo2);
-
 
 
 #endif // FUNCIONES_ESTUDIANTE_H_INCLUDED

@@ -5,6 +5,7 @@
 *.txt
 *.bmp
 *.pdf
+*.xlsx
 
 # Ignorar carpetas /bin y /obj
 /bin/

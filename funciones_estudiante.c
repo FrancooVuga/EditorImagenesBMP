@@ -59,9 +59,9 @@ int solucion(int argc, char* argv[])
         for(j = 1; j < argc; j++)
         {
             punteroFuncion funcionActual = buscarFuncion(argv[j]);
-            if(funcionActual)
+            if(funcionActual) // Encontre la funcion
             {
-                if(funcionActual(argv[indiceArchivoBMP]))
+                if(funcionActual(argv[indiceArchivoBMP])) // LLamo a la funcion pasando el path del archivo y en base a lo que devuelva imprimo en pantalla.
                 {
                     printf("No se pudo hacer la operacion '%s' sobre la imagen.\n", argv[j]);
 
@@ -145,7 +145,7 @@ int negativo(const char* nombreArchivo)
     memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
     int i;
-    unsigned char byte;
+    unsigned char byte; // Cada byte es la componente R,G o B de un pixel. En este caso me es indistinto, todos van a ser modificados de la misma forma
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < tamImagen; i++)
@@ -155,10 +155,8 @@ int negativo(const char* nombreArchivo)
         fwrite(&byte, 1,1, pfNuevo);
     }
 
-
-
-
     printf("Se invoco la funcion 'negativo'.\n");
+
     fclose(pfOrigen);
     fclose(pfNuevo);
 
@@ -218,6 +216,7 @@ int escalaDeGrises(const char* nombreArchivo)
 
     fclose(pfOrigen);
     fclose(pfNuevo);
+
     return TODO_OK;
 }
 
@@ -258,22 +257,28 @@ int aumentarContraste(const char* nombreArchivo)
     memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
     int i;
-    unsigned char byte; // unsigned byte = 1 byte -> 0-255
-    int nuevoByte;
+    float promedio;
+    unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i++)
+    for(i = 0; i < tamImagen; i+=3)
     {
-        fread(&byte, 1,1, pfOrigen);
-        nuevoByte = 1.50 * (byte - 128) + 128;
-        byte = nuevoByte > 255 ? 255 : nuevoByte < 0 ? 0 : nuevoByte;
-        fwrite(&byte, 1,1, pfNuevo);
+        fread(pixel, 3,1, pfOrigen);
+        promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
+        if(promedio > 127)
+        {
+            pixel[0] = pixel[0] * 1.25 > 255 ? 255 : pixel[0] * 1.25;
+            pixel[1] = pixel[1] * 1.25 > 255 ? 255 : pixel[1] * 1.25;
+            pixel[2] = pixel[2] * 1.25 > 255 ? 255 : pixel[2] * 1.25;
+        }
+        fwrite(pixel, 3,1, pfNuevo);
     }
 
     printf("Se invoco la funcion 'aumentarContraste'.\n");
 
     fclose(pfOrigen);
     fclose(pfNuevo);
+
     return TODO_OK;
 }
 
@@ -314,22 +319,28 @@ int reducirContraste(const char* nombreArchivo)
     memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
     int i;
-    unsigned char byte; // unsigned byte = 1 byte -> 0-255
-    int nuevoByte;
+    float promedio;
+    unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i++)
+    for(i = 0; i < tamImagen; i+=3)
     {
-        fread(&byte, 1,1, pfOrigen);
-        nuevoByte = 0.50 * (byte - 128) + 128;
-        byte = nuevoByte > 255 ? 255 : nuevoByte < 0 ? 0 : nuevoByte;
-        fwrite(&byte, 1,1, pfNuevo);
+        fread(pixel, 3,1, pfOrigen);
+        promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
+        if(promedio < 127)
+        {
+            pixel[0] *= 0.75;
+            pixel[1] *= 0.75;
+            pixel[2] *= 0.75;
+        }
+        fwrite(pixel, 3,1, pfNuevo);
     }
 
     printf("Se invoco la funcion 'reducirContraste'.\n");
 
     fclose(pfOrigen);
     fclose(pfNuevo);
+
     return TODO_OK;
 }
 
@@ -370,7 +381,7 @@ int tonalidadAzul(const char* nombreArchivo)
     memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
     int i;
-    int nuevoAzul;
+//    int nuevoAzul;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
@@ -387,8 +398,12 @@ int tonalidadAzul(const char* nombreArchivo)
 //            pixel[0] = nuevoAzul;
 //        }
 //        pixel[0] = nuevoAzul;
-        pixel[1] *= 0.7;
-        pixel[2] *= 0.7;
+//        pixel[1] *= 0.7;
+//        pixel[2] *= 0.7;
+
+// OTRA FORMA
+        pixel[0] = pixel[0] * 1.50 > 255 ? 255 : pixel[0] * 1.50;
+
         fwrite(pixel, 3,1, pfNuevo);
     }
 
@@ -437,21 +452,24 @@ int tonalidadVerde(const char* nombreArchivo)
     memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
     int i;
-    int nuevoVerde;
+//    int nuevoVerde;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < tamImagen; i+=3)
     {
         fread(pixel, 3,1, pfOrigen);
-//        nuevoVerde *= 1.5;
-//        if(pixel[1] >= 255)
-//        {
-//            pixel[1] = 255;
-//        }
-        pixel[0] *= 0.7;
-//        pixel[1] *= 1.5;
-        pixel[2] *= 0.7;
+////        nuevoVerde *= 1.5;
+////        if(pixel[1] >= 255)
+////        {
+////            pixel[1] = 255;
+////        }
+//        pixel[0] *= 0.7;
+////        pixel[1] *= 1.5;
+//        pixel[2] *= 0.7;
+
+// OTRA FORMA
+        pixel[1] = pixel[1] * 1.50 > 255 ? 255 : pixel[1] * 1.50;
         fwrite(pixel, 3,1, pfNuevo);
     }
 
@@ -500,21 +518,23 @@ int tonalidadRoja(const char* nombreArchivo)
     memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
     int i;
-    int nuevoRojo;
+//    int nuevoRojo;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < tamImagen; i+=3)
     {
         fread(pixel, 3,1, pfOrigen);
-//        nuevoRojo *= 1.5;
-//        if(pixel[2] >= 255)
-//        {
-//            pixel[2] = 255;
-//        }
-        pixel[0] *= 0.7;
-        pixel[1] *= 0.7;
-//        pixel[2] *= 0.7;
+////        nuevoRojo *= 1.5;
+////        if(pixel[2] >= 255)
+////        {
+////            pixel[2] = 255;
+////        }
+//        pixel[0] *= 0.7;
+//        pixel[1] *= 0.7;
+////        pixel[2] *= 0.7;
+// OTRA FORMA
+        pixel[2] = pixel[2] * 1.50 > 255 ? 255 : pixel[2] * 1.50;
         fwrite(pixel, 3,1, pfNuevo);
     }
 
@@ -528,7 +548,81 @@ int tonalidadRoja(const char* nombreArchivo)
 
 int recortar(const char* nombreArchivo)
 {
+    FILE* pfOrigen = fopen(nombreArchivo, "rb");
+    FILE* pfNuevo = fopen("estudiante_recortar.bmp", "wb");
+
+    if( !pfOrigen || !pfNuevo)
+    {
+        fclose(pfOrigen);
+        fclose(pfNuevo);
+        return NO_SE_PUEDE_CREAR_ARCHIVO;
+    }
+
+// Leo el tamaño del encabezadoBMP:
+    char tamEncabezado;
+    fseek(pfOrigen, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOrigen);
+
+// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
+    char encabezadoBMP[tamEncabezado];
+    fseek(pfOrigen, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+
+
+// Guardo los datos en la estructura 'infoEncabezado':
+    t_metadata infoEncabezado;
+
+    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
+    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
+    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
+    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
+    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
+    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
+// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
+    unsigned int tamImagen;
+    memcpy(&tamImagen, &encabezadoBMP[34], 4);
+
+    int i, j;
+    unsigned char byte;
+    unsigned int nuevoAlto = infoEncabezado.alto * 0.5 ;
+    unsigned int nuevoAncho = infoEncabezado.ancho * 0.5;
+//    int bytesEscritos = 0;
+    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
+    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < nuevoAlto*3; i++)
+    {
+        fseek(pfOrigen, infoEncabezado.comienzoImagen + i*infoEncabezado.ancho*3, SEEK_SET);
+        for(j = 0; j < nuevoAncho*3; j++)
+        {
+            fread(&byte, 1,1, pfOrigen);
+            fwrite(&byte, 1,1, pfNuevo);
+//            bytesEscritos++;
+        }
+    }
+
+// Modifico los datos del encabezado
+    infoEncabezado.tamArchivo = nuevoAlto*nuevoAncho*3 + infoEncabezado.comienzoImagen;
+    infoEncabezado.ancho = nuevoAncho;
+    infoEncabezado.alto = nuevoAlto;
+    tamImagen = nuevoAlto*nuevoAncho*3;
+// Ahora escribo en el archivo
+    fseek(pfNuevo, 2, SEEK_SET); // Tam archivo
+    fwrite(&infoEncabezado.tamArchivo, 4, 1, pfNuevo);
+    fseek(pfNuevo, 18, SEEK_SET); // Ancho
+    fwrite(&infoEncabezado.ancho, 4, 1, pfNuevo);
+    fseek(pfNuevo, 22, SEEK_SET); // Alto
+    fwrite(&infoEncabezado.alto, 4, 1, pfNuevo);
+    fseek(pfNuevo, 34, SEEK_SET); // Tamaño imagen
+    fwrite(&infoEncabezado.ancho, 4, 1, pfNuevo);
+
+
     printf("Se invoco la funcion 'recortar'.\n");
+//    printf("Pixeles escritos en la imagen recortada: %d\n", bytesEscritos);
+
+    fclose(pfOrigen);
+    fclose(pfNuevo);
+
     return TODO_OK;
 }
 
