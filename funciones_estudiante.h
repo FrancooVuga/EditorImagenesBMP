@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int solucion(int argc, char* argv[]);
+
 
 typedef int (*punteroFuncion)(const char* nombreArchivo);
 
@@ -18,6 +18,8 @@ typedef struct
 }t_funcion;
 
 punteroFuncion buscarFuncion(const char* nombreFucion);
+
+int solucion(int argc, char* argv[]);
 
 int negativo(const char* nombreArchivo);
 int escalaDeGrises(const char* nombreArchivo);

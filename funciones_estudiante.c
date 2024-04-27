@@ -628,13 +628,151 @@ int recortar(const char* nombreArchivo)
 
 int rotarDerecha(const char* nombreArchivo)
 {
+    FILE* pfOrigen = fopen(nombreArchivo, "rb");
+    FILE* pfNuevo = fopen("estudiante_rotar_derecha.bmp", "wb");
+
+    if( !pfOrigen || !pfNuevo)
+    {
+        fclose(pfOrigen);
+        fclose(pfNuevo);
+        return NO_SE_PUEDE_CREAR_ARCHIVO;
+    }
+
+// Leo el tamaño del encabezadoBMP:
+    char tamEncabezado;
+    fseek(pfOrigen, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOrigen);
+
+// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
+    char encabezadoBMP[tamEncabezado];
+    fseek(pfOrigen, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+
+
+// Guardo los datos en la estructura 'infoEncabezado':
+    t_metadata infoEncabezado;
+
+    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
+    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
+    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
+    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
+    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
+    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
+
+    int i, j;
+    unsigned int nuevoAlto = infoEncabezado.ancho;
+    unsigned int nuevoAncho = infoEncabezado.alto;
+    t_pixel pixel;
+    t_pixel mapaDePixeles[infoEncabezado.alto][infoEncabezado.ancho];
+    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < infoEncabezado.alto; i++)
+    {
+        for(j = 0; j < infoEncabezado.ancho; j++)
+        {
+           fread(pixel.pixel, 3, 1, pfOrigen);
+           mapaDePixeles[i][j] = pixel;
+        }
+    }
+
+    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < infoEncabezado.ancho; i++) // Columna
+    {
+        for(j = 0; j < infoEncabezado.alto; j++) // Fila
+        {
+           pixel = mapaDePixeles[j][infoEncabezado.ancho - 1 - i];
+           fwrite(pixel.pixel, 3, 1, pfNuevo);
+        }
+    }
+
+// Modifico los datos del encabezado
+    infoEncabezado.ancho = nuevoAncho;
+    infoEncabezado.alto = nuevoAlto;
+    fseek(pfNuevo, 18, SEEK_SET); // Ancho
+    fwrite(&infoEncabezado.ancho, 4, 1, pfNuevo);
+    fseek(pfNuevo, 22, SEEK_SET); // Alto
+    fwrite(&infoEncabezado.alto, 4, 1, pfNuevo);
+
     printf("Se invoco la funcion 'rotarDerecha'.\n");
+
+    fclose(pfOrigen);
+    fclose(pfNuevo);
+
     return TODO_OK;
 }
 
 int rotarIzquierda(const char* nombreArchivo)
 {
+        FILE* pfOrigen = fopen(nombreArchivo, "rb");
+    FILE* pfNuevo = fopen("estudiante_rotar_izquierda.bmp", "wb");
+
+    if( !pfOrigen || !pfNuevo)
+    {
+        fclose(pfOrigen);
+        fclose(pfNuevo);
+        return NO_SE_PUEDE_CREAR_ARCHIVO;
+    }
+
+// Leo el tamaño del encabezadoBMP:
+    char tamEncabezado;
+    fseek(pfOrigen, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOrigen);
+
+// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
+    char encabezadoBMP[tamEncabezado];
+    fseek(pfOrigen, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+
+
+// Guardo los datos en la estructura 'infoEncabezado':
+    t_metadata infoEncabezado;
+
+    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
+    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
+    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
+    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
+    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
+    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
+
+    int i, j;
+    unsigned int nuevoAlto = infoEncabezado.ancho;
+    unsigned int nuevoAncho = infoEncabezado.alto;
+    t_pixel pixel;
+    t_pixel mapaDePixeles[infoEncabezado.alto][infoEncabezado.ancho];
+    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < infoEncabezado.alto; i++)
+    {
+        for(j = 0; j < infoEncabezado.ancho; j++)
+        {
+           fread(pixel.pixel, 3, 1, pfOrigen);
+           mapaDePixeles[i][j] = pixel;
+        }
+    }
+
+    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < infoEncabezado.ancho; i++)
+    {
+        for(j = 0; j < infoEncabezado.alto; j++)
+        {
+           pixel = mapaDePixeles[infoEncabezado.alto - j - 1][i];
+           fwrite(pixel.pixel, 3, 1, pfNuevo);
+        }
+    }
+
+// Modifico los datos del encabezado
+    infoEncabezado.ancho = nuevoAncho;
+    infoEncabezado.alto = nuevoAlto;
+    fseek(pfNuevo, 18, SEEK_SET); // Ancho
+    fwrite(&infoEncabezado.ancho, 4, 1, pfNuevo);
+    fseek(pfNuevo, 22, SEEK_SET); // Alto
+    fwrite(&infoEncabezado.alto, 4, 1, pfNuevo);
+
     printf("Se invoco la funcion 'rotarIzquierda'.\n");
+
+    fclose(pfOrigen);
+    fclose(pfNuevo);
+
     return TODO_OK;
 }
 
