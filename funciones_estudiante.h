@@ -8,7 +8,6 @@
 #include <string.h>
 
 
-
 typedef int (*punteroFuncion)(const char* nombreArchivo);
 
 typedef struct
@@ -17,7 +16,7 @@ typedef struct
     punteroFuncion funcion;
 }t_funcion;
 
-punteroFuncion buscarFuncion(const char* nombreFucion);
+punteroFuncion buscarFuncion(const char* nombreFuncion);
 
 int solucion(int argc, char* argv[]);
 
@@ -31,7 +30,7 @@ int tonalidadRoja(const char* nombreArchivo);
 int recortar(const char* nombreArchivo);
 int rotarDerecha(const char* nombreArchivo);
 int rotarIzquierda(const char* nombreArchivo);
-int comodin(const char* nombreArchivo); // REEMPLAZAR
+int espejar(const char* nombreArchivo);
 
 
 

@@ -92,12 +92,13 @@ punteroFuncion buscarFuncion(const char* nombreFuncion)
                               {"--recortar", recortar},
                               {"--rotar-derecha", rotarDerecha},
                               {"--rotar-izquierda", rotarIzquierda},
-                              {"--comodin", comodin},
+                              {"--espejar", espejar},
                               {NULL, NULL}
                              };
 
 
-    for(t_funcion* f = tablaFunciones; f->nombre != NULL; f++)
+    t_funcion* f;
+    for(f = tablaFunciones; f->nombre != NULL; f++)
     {
         if(strcmp(nombreFuncion, f->nombre) == 0)
         {
@@ -120,37 +121,31 @@ int negativo(const char* nombreArchivo)
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
-// Leo el tamaño del encabezadoBMP:
-    char tamEncabezado;
+// Busco tamaño del encabezado:
+    unsigned int tamEncabezado;
     fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
 
-// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
-    char encabezadoBMP[tamEncabezado];
+// Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
+    unsigned char encabezadoBMP[tamEncabezado];
     fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
-    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
-// Guardo los datos en la estructura 'infoEncabezado':
-    t_metadata infoEncabezado;
+// Busco el comienzo de la imagen:
+    unsigned int comienzoImagen;
+    fseek(pfOrigen, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
 
-    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
-    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
-    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
-    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
-    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
-    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
-    unsigned int tamImagen;
-    memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
-    int i;
+// Ahora muevo ambos punteros de archivo al comienzo de la imagen
+    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfNuevo, comienzoImagen, SEEK_SET);
+
+
     unsigned char byte; // Cada byte es la componente R,G o B de un pixel. En este caso me es indistinto, todos van a ser modificados de la misma forma
-    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i++)
+    while(fread(&byte, 1, 1, pfOrigen))
     {
-        fread(&byte, 1,1, pfOrigen);
         byte = ~byte;
         fwrite(&byte, 1,1, pfNuevo);
     }
@@ -175,41 +170,34 @@ int escalaDeGrises(const char* nombreArchivo)
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
-// Leo el tamaño del encabezadoBMP:
-    char tamEncabezado;
+// Busco tamaño del encabezado:
+    unsigned int tamEncabezado;
     fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
 
-// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
-    char encabezadoBMP[tamEncabezado];
+// Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
+    unsigned char encabezadoBMP[tamEncabezado];
     fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
-    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
-// Guardo los datos en la estructura 'infoEncabezado':
-    t_metadata infoEncabezado;
+// Busco el comienzo de la imagen:
+    unsigned int comienzoImagen;
+    fseek(pfOrigen, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
 
-    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
-    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
-    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
-    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
-    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
-    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
-    unsigned int tamImagen;
-    memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
-    int i;
+// Ahora muevo ambos punteros de archivo al comienzo de la imagen
+    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfNuevo, comienzoImagen, SEEK_SET);
+
     float promedio;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i+=3)
+    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
     {
-        fread(pixel, 3,1, pfOrigen);
         promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
         pixel[0] = pixel[1] = pixel[2] = promedio;
-        fwrite(pixel, 3,1, pfNuevo);
+        fwrite(pixel, sizeof(pixel),1, pfNuevo);
     }
 
     printf("Se invoco la funcion 'escalaDeGrises'.\n");
@@ -232,38 +220,31 @@ int aumentarContraste(const char* nombreArchivo)
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
-// Leo el tamaño del encabezadoBMP:
-    char tamEncabezado;
+// Busco tamaño del encabezado:
+    unsigned int tamEncabezado;
     fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
 
-// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
-    char encabezadoBMP[tamEncabezado];
+// Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
+    unsigned char encabezadoBMP[tamEncabezado];
     fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
-    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
-// Guardo los datos en la estructura 'infoEncabezado':
-    t_metadata infoEncabezado;
+// Busco el comienzo de la imagen:
+    unsigned int comienzoImagen;
+    fseek(pfOrigen, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
 
-    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
-    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
-    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
-    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
-    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
-    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
-    unsigned int tamImagen;
-    memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
-    int i;
+// Ahora muevo ambos punteros de archivo al comienzo de la imagen
+    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfNuevo, comienzoImagen, SEEK_SET);
+
     float promedio;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i+=3)
+    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
     {
-        fread(pixel, 3,1, pfOrigen);
         promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
         if(promedio > 127)
         {
@@ -294,38 +275,31 @@ int reducirContraste(const char* nombreArchivo)
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
-// Leo el tamaño del encabezadoBMP:
-    char tamEncabezado;
+// Busco tamaño del encabezado:
+    unsigned int tamEncabezado;
     fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
 
-// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
-    char encabezadoBMP[tamEncabezado];
+// Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
+    unsigned char encabezadoBMP[tamEncabezado];
     fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
-    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
-// Guardo los datos en la estructura 'infoEncabezado':
-    t_metadata infoEncabezado;
+// Busco el comienzo de la imagen:
+    unsigned int comienzoImagen;
+    fseek(pfOrigen, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
 
-    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
-    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
-    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
-    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
-    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
-    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
-    unsigned int tamImagen;
-    memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
-    int i;
+// Ahora muevo ambos punteros de archivo al comienzo de la imagen
+    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfNuevo, comienzoImagen, SEEK_SET);
+
     float promedio;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i+=3)
+    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
     {
-        fread(pixel, 3,1, pfOrigen);
         promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
         if(promedio < 127)
         {
@@ -356,54 +330,31 @@ int tonalidadAzul(const char* nombreArchivo)
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
-// Leo el tamaño del encabezadoBMP:
-    char tamEncabezado;
+// Busco tamaño del encabezado:
+    unsigned int tamEncabezado;
     fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
 
-// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
-    char encabezadoBMP[tamEncabezado];
+// Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
+    unsigned char encabezadoBMP[tamEncabezado];
     fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
-    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
-// Guardo los datos en la estructura 'infoEncabezado':
-    t_metadata infoEncabezado;
+// Busco el comienzo de la imagen:
+    unsigned int comienzoImagen;
+    fseek(pfOrigen, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
 
-    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
-    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
-    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
-    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
-    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
-    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
-    unsigned int tamImagen;
-    memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
-    int i;
-//    int nuevoAzul;
+// Ahora muevo ambos punteros de archivo al comienzo de la imagen
+    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfNuevo, comienzoImagen, SEEK_SET);
+
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i+=3)
+    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
     {
-        fread(pixel, 3,1, pfOrigen);
-//        nuevoAzul = 255/2;
-//        if(nuevoAzul > 255)
-//        {
-//            pixel[0] = 255;
-//        }
-//        else
-//        {
-//            pixel[0] = nuevoAzul;
-//        }
-//        pixel[0] = nuevoAzul;
-//        pixel[1] *= 0.7;
-//        pixel[2] *= 0.7;
-
-// OTRA FORMA
         pixel[0] = pixel[0] * 1.50 > 255 ? 255 : pixel[0] * 1.50;
-
         fwrite(pixel, 3,1, pfNuevo);
     }
 
@@ -427,48 +378,30 @@ int tonalidadVerde(const char* nombreArchivo)
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
-// Leo el tamaño del encabezadoBMP:
-    char tamEncabezado;
+// Busco tamaño del encabezado:
+    unsigned int tamEncabezado;
     fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
 
-// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
-    char encabezadoBMP[tamEncabezado];
+// Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
+    unsigned char encabezadoBMP[tamEncabezado];
     fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
-    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
-// Guardo los datos en la estructura 'infoEncabezado':
-    t_metadata infoEncabezado;
+// Busco el comienzo de la imagen:
+    unsigned int comienzoImagen;
+    fseek(pfOrigen, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
 
-    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
-    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
-    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
-    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
-    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
-    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
-    unsigned int tamImagen;
-    memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
-    int i;
-//    int nuevoVerde;
+// Ahora muevo ambos punteros de archivo al comienzo de la imagen
+    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfNuevo, comienzoImagen, SEEK_SET);
+
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i+=3)
+    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
     {
-        fread(pixel, 3,1, pfOrigen);
-////        nuevoVerde *= 1.5;
-////        if(pixel[1] >= 255)
-////        {
-////            pixel[1] = 255;
-////        }
-//        pixel[0] *= 0.7;
-////        pixel[1] *= 1.5;
-//        pixel[2] *= 0.7;
-
-// OTRA FORMA
         pixel[1] = pixel[1] * 1.50 > 255 ? 255 : pixel[1] * 1.50;
         fwrite(pixel, 3,1, pfNuevo);
     }
@@ -493,47 +426,30 @@ int tonalidadRoja(const char* nombreArchivo)
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
-// Leo el tamaño del encabezadoBMP:
-    char tamEncabezado;
+// Busco tamaño del encabezado:
+    unsigned int tamEncabezado;
     fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
 
-// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
-    char encabezadoBMP[tamEncabezado];
+// Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
+    unsigned char encabezadoBMP[tamEncabezado];
     fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
-    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
-// Guardo los datos en la estructura 'infoEncabezado':
-    t_metadata infoEncabezado;
+// Busco el comienzo de la imagen:
+    unsigned int comienzoImagen;
+    fseek(pfOrigen, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
 
-    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
-    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
-    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
-    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
-    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
-    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
-    unsigned int tamImagen;
-    memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
-    int i;
-//    int nuevoRojo;
+// Ahora muevo ambos punteros de archivo al comienzo de la imagen
+    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfNuevo, comienzoImagen, SEEK_SET);
+
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
-    for(i = 0; i < tamImagen; i+=3)
+    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
     {
-        fread(pixel, 3,1, pfOrigen);
-////        nuevoRojo *= 1.5;
-////        if(pixel[2] >= 255)
-////        {
-////            pixel[2] = 255;
-////        }
-//        pixel[0] *= 0.7;
-//        pixel[1] *= 0.7;
-////        pixel[2] *= 0.7;
-// OTRA FORMA
         pixel[2] = pixel[2] * 1.50 > 255 ? 255 : pixel[2] * 1.50;
         fwrite(pixel, 3,1, pfNuevo);
     }
@@ -579,7 +495,6 @@ int recortar(const char* nombreArchivo)
     memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
     memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
     memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
-// Puedo usar la variable 'tamImagen' o hacer directamente 'tamArchivo' - 'comienzoImagen'
     unsigned int tamImagen;
     memcpy(&tamImagen, &encabezadoBMP[34], 4);
 
@@ -587,7 +502,6 @@ int recortar(const char* nombreArchivo)
     unsigned char byte;
     unsigned int nuevoAlto = infoEncabezado.alto * 0.5 ;
     unsigned int nuevoAncho = infoEncabezado.ancho * 0.5;
-//    int bytesEscritos = 0;
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
     fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < nuevoAlto*3; i++)
@@ -597,7 +511,6 @@ int recortar(const char* nombreArchivo)
         {
             fread(&byte, 1,1, pfOrigen);
             fwrite(&byte, 1,1, pfNuevo);
-//            bytesEscritos++;
         }
     }
 
@@ -616,9 +529,26 @@ int recortar(const char* nombreArchivo)
     fseek(pfNuevo, 34, SEEK_SET); // Tamaño imagen
     fwrite(&infoEncabezado.ancho, 4, 1, pfNuevo);
 
+// OTRA FORMA
+//    unsigned char filaCompleta[infoEncabezado.ancho*3];
+//    unsigned char pixelVacio[3] = {0,0,0};
+//    unsigned char pixel[3];
+//    for(i = infoEncabezado.alto; i > nuevoAlto; i--)
+//    {
+//        fread(filaCompleta, sizeof(filaCompleta), 1, pfOrigen);
+//        fwrite(filaCompleta, nuevoAncho*3, 1, pfNuevo);
+//        for(int byte = 0; byte < nuevoAncho*3; byte++)
+//        {
+//            fwrite(&pixelVacio[0], 1, 1, pfNuevo);
+//        }
+//    }
+//
+//    while(fread(pixel, 3, 1, pfOrigen))
+//    {
+//        fwrite(pixelVacio, sizeof(pixelVacio), 1, pfNuevo);
+//    }
 
     printf("Se invoco la funcion 'recortar'.\n");
-//    printf("Pixeles escritos en la imagen recortada: %d\n", bytesEscritos);
 
     fclose(pfOrigen);
     fclose(pfNuevo);
@@ -703,7 +633,7 @@ int rotarDerecha(const char* nombreArchivo)
 
 int rotarIzquierda(const char* nombreArchivo)
 {
-        FILE* pfOrigen = fopen(nombreArchivo, "rb");
+    FILE* pfOrigen = fopen(nombreArchivo, "rb");
     FILE* pfNuevo = fopen("estudiante_rotar_izquierda.bmp", "wb");
 
     if( !pfOrigen || !pfNuevo)
@@ -776,8 +706,67 @@ int rotarIzquierda(const char* nombreArchivo)
     return TODO_OK;
 }
 
-int comodin(const char* nombreArchivo) // REEMPLAZAR
+int espejar(const char* nombreArchivo) // REEMPLAZAR
 {
-    printf("Se invoco la funcion 'comodin'.\n");
+    FILE* pfOrigen = fopen(nombreArchivo, "rb");
+    FILE* pfNuevo = fopen("estudiante_espejar.bmp", "wb");
+
+    if( !pfOrigen || !pfNuevo)
+    {
+        fclose(pfOrigen);
+        fclose(pfNuevo);
+        return NO_SE_PUEDE_CREAR_ARCHIVO;
+    }
+
+// Leo el tamaño del encabezadoBMP:
+    char tamEncabezado;
+    fseek(pfOrigen, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOrigen);
+
+// Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
+    char encabezadoBMP[tamEncabezado];
+    fseek(pfOrigen, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
+
+
+// Guardo los datos en la estructura 'infoEncabezado':
+    t_metadata infoEncabezado;
+
+    memcpy(&infoEncabezado.tamArchivo, &encabezadoBMP[2], 4);
+    memcpy(&infoEncabezado.tamEncabezado, &encabezadoBMP[14], 4);
+    memcpy(&infoEncabezado.comienzoImagen, &encabezadoBMP[10], 4);
+    memcpy(&infoEncabezado.ancho, &encabezadoBMP[18], 4);
+    memcpy(&infoEncabezado.alto, &encabezadoBMP[22], 4);
+    memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
+
+    int i, j;
+    unsigned int nuevoAlto = infoEncabezado.ancho;
+    unsigned int nuevoAncho = infoEncabezado.alto;
+    t_pixel pixel;
+    t_pixel mapaDePixeles[infoEncabezado.alto][infoEncabezado.ancho];
+    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < infoEncabezado.alto; i++)
+    {
+        for(j = 0; j < infoEncabezado.ancho; j++)
+        {
+           fread(pixel.pixel, 3, 1, pfOrigen);
+           mapaDePixeles[i][j] = pixel;
+        }
+    }
+
+    fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
+    for(i = 0; i < infoEncabezado.alto; i++)
+    {
+        for(j = infoEncabezado.ancho - 1; j >= 0; j--)
+        {
+           pixel = mapaDePixeles[i][j];
+           fwrite(pixel.pixel, 3, 1, pfNuevo);
+        }
+    }
+
+    printf("Se invoco la funcion 'espejar'.\n");
+    fclose(pfOrigen);
+    fclose(pfNuevo);
     return TODO_OK;
 }
