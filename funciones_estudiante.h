@@ -1,14 +1,14 @@
 #ifndef FUNCIONES_ESTUDIANTE_H_INCLUDED
 #define FUNCIONES_ESTUDIANTE_H_INCLUDED
-
 #include "constantes.h"
 #include "estructuras.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#define ARCHIVO_NO_ESPECIFICADO -1
 
 
-typedef int (*punteroFuncion)(const char* nombreArchivo);
+typedef int (*punteroFuncion)(FILE* pfOriginal, const char* nombreNuevoArchivo);
 
 typedef struct
 {
@@ -16,21 +16,21 @@ typedef struct
     punteroFuncion funcion;
 }t_funcion;
 
-punteroFuncion buscarFuncion(const char* nombreFuncion);
+t_funcion buscarFuncion(const char* nombreFuncion);
 
 int solucion(int argc, char* argv[]);
 
-int negativo(const char* nombreArchivo);
-int escalaDeGrises(const char* nombreArchivo);
-int aumentarContraste(const char* nombreArchivo);
-int reducirContraste(const char* nombreArchivo);
-int tonalidadAzul(const char* nombreArchivo);
-int tonalidadVerde(const char* nombreArchivo);
-int tonalidadRoja(const char* nombreArchivo);
-int recortar(const char* nombreArchivo);
-int rotarDerecha(const char* nombreArchivo);
-int rotarIzquierda(const char* nombreArchivo);
-int espejar(const char* nombreArchivo);
+int negativo(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int escalaDeGrises(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int aumentarContraste(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int reducirContraste(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int tonalidadAzul(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int tonalidadVerde(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int tonalidadRoja(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int recortar(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int rotarDerecha(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int rotarIzquierda(FILE* pfOriginal, const char* nombreNuevoArchivo);
+int espejar(FILE* pfOriginal, const char* nombreNuevoArchivo);
 
 
 

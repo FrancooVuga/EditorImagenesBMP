@@ -38,9 +38,9 @@ int solucion(int argc, char* argv[])
     Aquí deben hacer el código que solucione lo solicitado.
     Todas las funciones utilizadas deben estar declaradas en este archivo, y en su respectivo .h
 */
-// Primero busco el indice del archivo .bmp si no es el ultimo parametro:
+// Primero busco el indice del archivo .bmp, por si no es el ultimo parametro:
     int i;
-    int indiceArchivoBMP = ARCHIVO_NO_ENCONTRADO;
+    int indiceArchivoBMP = ARCHIVO_NO_ESPECIFICADO;
 
     for(i = 1; i < argc; i++)
     {
@@ -51,50 +51,64 @@ int solucion(int argc, char* argv[])
     }
 
 // Ahora proceso todos los argumentos si se encontró el .bmp:
-    //int resultadoFuncion;
-    if(indiceArchivoBMP != ARCHIVO_NO_ENCONTRADO)
+    if(indiceArchivoBMP != ARCHIVO_NO_ESPECIFICADO)
     {
+        FILE* pfOriginal = fopen(argv[indiceArchivoBMP], "rb");
+        if(!pfOriginal)
+        {
+            printf("No se pudo abrir el archivo '%s'.\n", argv[indiceArchivoBMP]);
+            return ARCHIVO_NO_ENCONTRADO;
+        }
        // Ahora por cada argumento a main, llamo a la respectiva funcion
         int j;
+        char nombreNuevoArchivo[40] = {"estudiante_"};
+        t_funcion funcionActual;
         for(j = 1; j < argc; j++)
         {
-            punteroFuncion funcionActual = buscarFuncion(argv[j]);
-            if(funcionActual) // Encontre la funcion
+            funcionActual = buscarFuncion(argv[j]);
+            if(funcionActual.funcion) // Encontre la funcion
             {
-                if(funcionActual(argv[indiceArchivoBMP])) // LLamo a la funcion pasando el path del archivo y en base a lo que devuelva imprimo en pantalla.
+                strcat(nombreNuevoArchivo , &funcionActual.nombre[2]);
+                strcat(nombreNuevoArchivo, ".bmp\0");
+                fseek(pfOriginal, 0, SEEK_SET);
+                if(funcionActual.funcion(pfOriginal, nombreNuevoArchivo)) // LLamo a la funcion pasando el path del archivo y en base a lo que devuelva imprimo en pantalla.
                 {
                     printf("No se pudo hacer la operacion '%s' sobre la imagen.\n", argv[j]);
 
                 }
-
+                nombreNuevoArchivo[11] = '\0'; // "estudiante_\0"
+            }
+            else if(j != indiceArchivoBMP)
+            {
+                printf("La funcion '%s' no es valida.\n", argv[j]);
             }
         }
+        fclose(pfOriginal);
     }
     else
     {
         printf("No se especifico un archivo '.bmp'.\n");
-        return NO_SE_PUEDE_CREAR_ARCHIVO;
+        return ARCHIVO_NO_ENCONTRADO;
     }
 
     return TODO_OK;
 }
 
-punteroFuncion buscarFuncion(const char* nombreFuncion)
+t_funcion buscarFuncion(const char* nombreFuncion)
 {
     // Donde deberia estar declarado?
-    static t_funcion tablaFunciones[] = {{"--negativo", negativo},
-                              {"--escala-de-grises", escalaDeGrises},
-                              {"--aumentar-contraste", aumentarContraste},
-                              {"--reducir-contraste", reducirContraste},
-                              {"--tonalidad-azul", tonalidadAzul},
-                              {"--tonalidad-verde", tonalidadVerde},
-                              {"--tonalidad-roja", tonalidadRoja},
-                              {"--recortar", recortar},
-                              {"--rotar-derecha", rotarDerecha},
-                              {"--rotar-izquierda", rotarIzquierda},
-                              {"--espejar", espejar},
-                              {NULL, NULL}
-                             };
+    static t_funcion tablaFunciones[] ={{"--negativo", negativo},
+                                        {"--escala-de-grises", escalaDeGrises},
+                                        {"--aumentar-contraste", aumentarContraste},
+                                        {"--reducir-contraste", reducirContraste},
+                                        {"--tonalidad-azul", tonalidadAzul},
+                                        {"--tonalidad-verde", tonalidadVerde},
+                                        {"--tonalidad-roja", tonalidadRoja},
+                                        {"--recortar", recortar},
+                                        {"--rotar-derecha", rotarDerecha},
+                                        {"--rotar-izquierda", rotarIzquierda},
+                                        {"--espejar", espejar},
+                                        {NULL, NULL}};
 
 
     t_funcion* f;
@@ -102,49 +116,46 @@ punteroFuncion buscarFuncion(const char* nombreFuncion)
     {
         if(strcmp(nombreFuncion, f->nombre) == 0)
         {
-            return f->funcion;
+            return *f;
         }
     }
-    printf("La funcion '%s' no es valida.\n", nombreFuncion);
-    return NULL;
+    f->funcion = NULL;
+    return *f;
 }
 
-int negativo(const char* nombreArchivo)
+int negativo(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_negativo.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Busco tamaño del encabezado:
     unsigned int tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOriginal);
 
 // Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
     unsigned char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOriginal);
     fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
 // Busco el comienzo de la imagen:
     unsigned int comienzoImagen;
-    fseek(pfOrigen, 10, SEEK_SET);
-    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
+    fseek(pfOriginal, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOriginal);
 
 
 // Ahora muevo ambos punteros de archivo al comienzo de la imagen
-    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, comienzoImagen, SEEK_SET);
     fseek(pfNuevo, comienzoImagen, SEEK_SET);
 
 
     unsigned char byte; // Cada byte es la componente R,G o B de un pixel. En este caso me es indistinto, todos van a ser modificados de la misma forma
-    while(fread(&byte, 1, 1, pfOrigen))
+    while(fread(&byte, 1, 1, pfOriginal))
     {
         byte = ~byte;
         fwrite(&byte, 1,1, pfNuevo);
@@ -152,48 +163,44 @@ int negativo(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'negativo'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int escalaDeGrises(const char* nombreArchivo)
+int escalaDeGrises(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_escala_de_grises.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Busco tamaño del encabezado:
     unsigned int tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOriginal);
 
 // Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
     unsigned char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOriginal);
     fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
 // Busco el comienzo de la imagen:
     unsigned int comienzoImagen;
-    fseek(pfOrigen, 10, SEEK_SET);
-    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
+    fseek(pfOriginal, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOriginal);
 
 
 // Ahora muevo ambos punteros de archivo al comienzo de la imagen
-    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, comienzoImagen, SEEK_SET);
     fseek(pfNuevo, comienzoImagen, SEEK_SET);
 
     float promedio;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
+    while(fread(pixel, sizeof(pixel), 1, pfOriginal))
     {
         promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
         pixel[0] = pixel[1] = pixel[2] = promedio;
@@ -202,48 +209,44 @@ int escalaDeGrises(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'escalaDeGrises'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int aumentarContraste(const char* nombreArchivo)
+int aumentarContraste(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_aumentar_contraste.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Busco tamaño del encabezado:
     unsigned int tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOriginal);
 
 // Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
     unsigned char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOriginal);
     fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
 // Busco el comienzo de la imagen:
     unsigned int comienzoImagen;
-    fseek(pfOrigen, 10, SEEK_SET);
-    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
+    fseek(pfOriginal, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOriginal);
 
 
 // Ahora muevo ambos punteros de archivo al comienzo de la imagen
-    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, comienzoImagen, SEEK_SET);
     fseek(pfNuevo, comienzoImagen, SEEK_SET);
 
     float promedio;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
+    while(fread(pixel, sizeof(pixel), 1, pfOriginal))
     {
         promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
         if(promedio > 127)
@@ -257,48 +260,44 @@ int aumentarContraste(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'aumentarContraste'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int reducirContraste(const char* nombreArchivo)
+int reducirContraste(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_reducir_contraste.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Busco tamaño del encabezado:
     unsigned int tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOriginal);
 
 // Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
     unsigned char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOriginal);
     fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
 // Busco el comienzo de la imagen:
     unsigned int comienzoImagen;
-    fseek(pfOrigen, 10, SEEK_SET);
-    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
+    fseek(pfOriginal, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOriginal);
 
 
 // Ahora muevo ambos punteros de archivo al comienzo de la imagen
-    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, comienzoImagen, SEEK_SET);
     fseek(pfNuevo, comienzoImagen, SEEK_SET);
 
     float promedio;
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
+    while(fread(pixel, sizeof(pixel), 1, pfOriginal))
     {
         promedio = (pixel[0] + pixel[1] + pixel[2]) / 3;
         if(promedio < 127)
@@ -312,47 +311,43 @@ int reducirContraste(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'reducirContraste'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int tonalidadAzul(const char* nombreArchivo)
+int tonalidadAzul(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_tonalidad_azul.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Busco tamaño del encabezado:
     unsigned int tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOriginal);
 
 // Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
     unsigned char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOriginal);
     fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
 // Busco el comienzo de la imagen:
     unsigned int comienzoImagen;
-    fseek(pfOrigen, 10, SEEK_SET);
-    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
+    fseek(pfOriginal, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOriginal);
 
 
 // Ahora muevo ambos punteros de archivo al comienzo de la imagen
-    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, comienzoImagen, SEEK_SET);
     fseek(pfNuevo, comienzoImagen, SEEK_SET);
 
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
+    while(fread(pixel, sizeof(pixel), 1, pfOriginal))
     {
         pixel[0] = pixel[0] * 1.50 > 255 ? 255 : pixel[0] * 1.50;
         fwrite(pixel, 3,1, pfNuevo);
@@ -360,47 +355,43 @@ int tonalidadAzul(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'tonalidadAzul'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int tonalidadVerde(const char* nombreArchivo)
+int tonalidadVerde(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_tonalidad_verde.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Busco tamaño del encabezado:
     unsigned int tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOriginal);
 
 // Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
     unsigned char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOriginal);
     fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
 // Busco el comienzo de la imagen:
     unsigned int comienzoImagen;
-    fseek(pfOrigen, 10, SEEK_SET);
-    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
+    fseek(pfOriginal, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOriginal);
 
 
 // Ahora muevo ambos punteros de archivo al comienzo de la imagen
-    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, comienzoImagen, SEEK_SET);
     fseek(pfNuevo, comienzoImagen, SEEK_SET);
 
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
+    while(fread(pixel, sizeof(pixel), 1, pfOriginal))
     {
         pixel[1] = pixel[1] * 1.50 > 255 ? 255 : pixel[1] * 1.50;
         fwrite(pixel, 3,1, pfNuevo);
@@ -408,47 +399,43 @@ int tonalidadVerde(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'tonalidadVerde'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int tonalidadRoja(const char* nombreArchivo)
+int tonalidadRoja(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_tonalidad_roja.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Busco tamaño del encabezado:
     unsigned int tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, sizeof(tamEncabezado), 1, pfOriginal);
 
 // Leo y almaceno el encabezado del archivo original para escribirlo en el nuevo archivo
     unsigned char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(encabezadoBMP, sizeof(encabezadoBMP), 1, pfOriginal);
     fwrite(encabezadoBMP, sizeof(encabezadoBMP), 1, pfNuevo);
 
 // Busco el comienzo de la imagen:
     unsigned int comienzoImagen;
-    fseek(pfOrigen, 10, SEEK_SET);
-    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOrigen);
+    fseek(pfOriginal, 10, SEEK_SET);
+    fread(&comienzoImagen, sizeof(comienzoImagen), 1, pfOriginal);
 
 
 // Ahora muevo ambos punteros de archivo al comienzo de la imagen
-    fseek(pfOrigen, comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, comienzoImagen, SEEK_SET);
     fseek(pfNuevo, comienzoImagen, SEEK_SET);
 
     unsigned char pixel[3]; // unsigned byte = 1 byte -> 0-255
-    while(fread(pixel, sizeof(pixel), 1, pfOrigen))
+    while(fread(pixel, sizeof(pixel), 1, pfOriginal))
     {
         pixel[2] = pixel[2] * 1.50 > 255 ? 255 : pixel[2] * 1.50;
         fwrite(pixel, 3,1, pfNuevo);
@@ -456,33 +443,29 @@ int tonalidadRoja(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'tonalidadRoja'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int recortar(const char* nombreArchivo)
+int recortar(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_recortar.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Leo el tamaño del encabezadoBMP:
     char tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOriginal);
 
 // Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
     char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOriginal);
     fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
 
 
@@ -503,13 +486,13 @@ int recortar(const char* nombreArchivo)
     unsigned int nuevoAlto = infoEncabezado.alto * 0.5 ;
     unsigned int nuevoAncho = infoEncabezado.ancho * 0.5;
     fseek(pfNuevo, infoEncabezado.comienzoImagen, SEEK_SET);
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < nuevoAlto*3; i++)
     {
-        fseek(pfOrigen, infoEncabezado.comienzoImagen + i*infoEncabezado.ancho*3, SEEK_SET);
+        fseek(pfOriginal, infoEncabezado.comienzoImagen + i*infoEncabezado.ancho*3, SEEK_SET);
         for(j = 0; j < nuevoAncho*3; j++)
         {
-            fread(&byte, 1,1, pfOrigen);
+            fread(&byte, 1,1, pfOriginal);
             fwrite(&byte, 1,1, pfNuevo);
         }
     }
@@ -535,7 +518,7 @@ int recortar(const char* nombreArchivo)
 //    unsigned char pixel[3];
 //    for(i = infoEncabezado.alto; i > nuevoAlto; i--)
 //    {
-//        fread(filaCompleta, sizeof(filaCompleta), 1, pfOrigen);
+//        fread(filaCompleta, sizeof(filaCompleta), 1, pfOriginal);
 //        fwrite(filaCompleta, nuevoAncho*3, 1, pfNuevo);
 //        for(int byte = 0; byte < nuevoAncho*3; byte++)
 //        {
@@ -543,40 +526,35 @@ int recortar(const char* nombreArchivo)
 //        }
 //    }
 //
-//    while(fread(pixel, 3, 1, pfOrigen))
+//    while(fread(pixel, 3, 1, pfOriginal))
 //    {
 //        fwrite(pixelVacio, sizeof(pixelVacio), 1, pfNuevo);
 //    }
 
     printf("Se invoco la funcion 'recortar'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int rotarDerecha(const char* nombreArchivo)
+int rotarDerecha(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_rotar_derecha.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
-
 // Leo el tamaño del encabezadoBMP:
     char tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOriginal);
 
 // Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
     char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOriginal);
     fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
 
 
@@ -595,12 +573,12 @@ int rotarDerecha(const char* nombreArchivo)
     unsigned int nuevoAncho = infoEncabezado.alto;
     t_pixel pixel;
     t_pixel mapaDePixeles[infoEncabezado.alto][infoEncabezado.ancho];
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < infoEncabezado.alto; i++)
     {
         for(j = 0; j < infoEncabezado.ancho; j++)
         {
-           fread(pixel.pixel, 3, 1, pfOrigen);
+           fread(pixel.pixel, 3, 1, pfOriginal);
            mapaDePixeles[i][j] = pixel;
         }
     }
@@ -625,33 +603,29 @@ int rotarDerecha(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'rotarDerecha'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int rotarIzquierda(const char* nombreArchivo)
+int rotarIzquierda(FILE* pfOriginal, const char* nombreNuevoArchivo)
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_rotar_izquierda.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Leo el tamaño del encabezadoBMP:
     char tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOriginal);
 
 // Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
     char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOriginal);
     fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
 
 
@@ -670,12 +644,12 @@ int rotarIzquierda(const char* nombreArchivo)
     unsigned int nuevoAncho = infoEncabezado.alto;
     t_pixel pixel;
     t_pixel mapaDePixeles[infoEncabezado.alto][infoEncabezado.ancho];
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < infoEncabezado.alto; i++)
     {
         for(j = 0; j < infoEncabezado.ancho; j++)
         {
-           fread(pixel.pixel, 3, 1, pfOrigen);
+           fread(pixel.pixel, 3, 1, pfOriginal);
            mapaDePixeles[i][j] = pixel;
         }
     }
@@ -700,33 +674,29 @@ int rotarIzquierda(const char* nombreArchivo)
 
     printf("Se invoco la funcion 'rotarIzquierda'.\n");
 
-    fclose(pfOrigen);
     fclose(pfNuevo);
 
     return TODO_OK;
 }
 
-int espejar(const char* nombreArchivo) // REEMPLAZAR
+int espejar(FILE* pfOriginal, const char* nombreNuevoArchivo) // REEMPLAZAR
 {
-    FILE* pfOrigen = fopen(nombreArchivo, "rb");
-    FILE* pfNuevo = fopen("estudiante_espejar.bmp", "wb");
+    FILE* pfNuevo = fopen(nombreNuevoArchivo, "wb");
 
-    if( !pfOrigen || !pfNuevo)
+    if(!pfNuevo)
     {
-        fclose(pfOrigen);
-        fclose(pfNuevo);
         return NO_SE_PUEDE_CREAR_ARCHIVO;
     }
 
 // Leo el tamaño del encabezadoBMP:
     char tamEncabezado;
-    fseek(pfOrigen, 14, SEEK_SET);
-    fread(&tamEncabezado, 4, 1, pfOrigen);
+    fseek(pfOriginal, 14, SEEK_SET);
+    fread(&tamEncabezado, 4, 1, pfOriginal);
 
 // Declaro una variable para almacenar el encabezado y luego escribirlo en el nuevo archivo
     char encabezadoBMP[tamEncabezado];
-    fseek(pfOrigen, 0, SEEK_SET);
-    fread(&encabezadoBMP, tamEncabezado, 1, pfOrigen);
+    fseek(pfOriginal, 0, SEEK_SET);
+    fread(&encabezadoBMP, tamEncabezado, 1, pfOriginal);
     fwrite(encabezadoBMP, tamEncabezado, 1, pfNuevo);
 
 
@@ -741,16 +711,14 @@ int espejar(const char* nombreArchivo) // REEMPLAZAR
     memcpy(&infoEncabezado.profundidad, &encabezadoBMP[2], 2);
 
     int i, j;
-    unsigned int nuevoAlto = infoEncabezado.ancho;
-    unsigned int nuevoAncho = infoEncabezado.alto;
     t_pixel pixel;
     t_pixel mapaDePixeles[infoEncabezado.alto][infoEncabezado.ancho];
-    fseek(pfOrigen, infoEncabezado.comienzoImagen, SEEK_SET);
+    fseek(pfOriginal, infoEncabezado.comienzoImagen, SEEK_SET);
     for(i = 0; i < infoEncabezado.alto; i++)
     {
         for(j = 0; j < infoEncabezado.ancho; j++)
         {
-           fread(pixel.pixel, 3, 1, pfOrigen);
+           fread(pixel.pixel, 3, 1, pfOriginal);
            mapaDePixeles[i][j] = pixel;
         }
     }
@@ -766,7 +734,7 @@ int espejar(const char* nombreArchivo) // REEMPLAZAR
     }
 
     printf("Se invoco la funcion 'espejar'.\n");
-    fclose(pfOrigen);
+
     fclose(pfNuevo);
     return TODO_OK;
 }
